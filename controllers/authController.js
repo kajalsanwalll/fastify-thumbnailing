@@ -2,6 +2,7 @@ const User = require("../models/user");
 const crypto  = require("crypto");
 const bcrypt = require("bcryptjs");
 const { error } = require("console");
+const user = require("../models/user");
 
 
 exports.register = async (request, reply) => {
@@ -36,7 +37,37 @@ exports.login = async (request, reply) => {
             reply.send("some field is missing bruh!")
         }
 
+        const user = await User.findOne({email});
+
+        if(!user){
+            return reply.code(400).send({message: "Invalid email or password!"})
+        }
+
+        //validate the password
+
+        const isValid = await bcrypt.compare(password, user.password)
+
+        if(!isValid){
+            reply.code(400).send({message: "Invalid email or password"})
+        }
+
+        const token = request.server.jwt.sign({id: user._id}) //fastify thing
+        reply.send({token})
+
+    } catch (err) {
+        reply.send(err)
+    }
+}
+
+exports.forgotPassword = async (request, reply) => {
+    try {
+        
+        const {email} = request.body
         const user = await User.findOne({email})
+
+        if(!user){
+            return reply.notFound("user not found!")
+        }
 
 
     } catch (err) {
