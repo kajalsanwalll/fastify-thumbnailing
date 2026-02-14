@@ -22,11 +22,23 @@ fastify.register(require("@fastify/env"),{
     }
 })
 
+// register custom plugins
+fastify.register(require("./plugins/mongoDb.js"));
 
 
 //Declare a route
 fastify.get('/', function(request, reply){
     reply.send({hello: 'world'})
+})
+
+//test database connection
+fastify.get("/test-db", async(request, reply) => {
+    try {
+        
+    } catch (err) {
+        fastify.log.error(err);
+        process.exit(1);
+    }
 })
 
 //fastify env ke liye
