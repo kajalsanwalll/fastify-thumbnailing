@@ -33,10 +33,36 @@ fastify.get('/', function(request, reply){
 
 //test database connection
 fastify.get("/test-db", async(request, reply) => {
+    
     try {
+        const mongoose = fastify.mongoose;
+        const connectionState = mongoose.connection.readyState;
+
+        let status = ""
+        switch (connectionState) {
+            case 0:
+                status = "disconnected!"
+                break;
+            case 1:
+                status = "connected!"
+                break;
+            case 2:
+                status = "connecting!"
+                break;
+            case 3:
+                status = "disconnecting!"
+                break;
         
+            default:
+                status = "unknown!"
+                break;
+        }
+        reply.send({database: status})
+
+
     } catch (err) {
         fastify.log.error(err);
+        reply.status(500).send({error: "failed to test database!"})
         process.exit(1);
     }
 })
