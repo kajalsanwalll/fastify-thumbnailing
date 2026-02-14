@@ -69,8 +69,59 @@ exports.forgotPassword = async (request, reply) => {
             return reply.notFound("user not found!")
         }
 
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const resetPasswordExpire = Date.now() + 10 * 60 * 1000;  //10 mins
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpiry = resetPasswordExpire
+
+        await user.save({validateBeforeSave: false});
+
+        const resetUrl = `http://localhost:${process.env.PORT}/api/auth/reset-password/${resetToken}`
+
+        reply.send({resetUrl})
+
 
     } catch (err) {
         reply.send(err)
     }
+}
+
+exports.resetPassword = async (request, reply) => {
+
+    try {
+        
+        const resetToken = request.params.token
+        const {newPassword} = request.body
+
+        const user = await User.findOne({
+            resetPasswordToken: resetToken,
+            resetPasswordExpiry: {$gt: Date.now()}
+        })
+
+        if(!user){
+            return reply.badRequest("Invalid or expired password reset token!")
+        }
+
+        //hash the password
+        const hashedPassword = await bcrypt.hash(newPassword, 12)
+
+        user.password = hashedPassword
+        user.resetPasswordToken = undefined
+        user.resetPasswordExpiry = undefined
+
+        await user.save()
+
+        reply.send({message: "password reset successful!"})
+
+
+    } catch (err) {
+        reply.send(err)
+    }
+}
+
+exports.logout = async(request, reply) =>{
+    // jwt are stateless, use strategy like refresh token or blacklist token for more
+
+    reply.send({message : "user logged out!"})
 }
