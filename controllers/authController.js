@@ -2,8 +2,6 @@ const User = require("../models/user");
 const crypto  = require("crypto");
 const bcrypt = require("bcryptjs");
 const { error } = require("console");
-const user = require("../models/user");
-
 
 exports.register = async (request, reply) => {
 
@@ -11,7 +9,7 @@ exports.register = async (request, reply) => {
 
         const {name, email, password, country} = request.body
 
-        if(!name || !email || !password ||body){
+        if(!name || !email || !password ){
             reply.send("some field is missing bruh!")
         }
 
@@ -33,7 +31,7 @@ exports.login = async (request, reply) => {
         
         const { email, password} = request.body
 
-        if( !email || !password ||body){
+        if( !email || !password){
             reply.send("some field is missing bruh!")
         }
 
@@ -48,7 +46,7 @@ exports.login = async (request, reply) => {
         const isValid = await bcrypt.compare(password, user.password)
 
         if(!isValid){
-            reply.code(400).send({message: "Invalid email or password"})
+            return reply.code(400).send({message: "Invalid email or password"})
         }
 
         const token = request.server.jwt.sign({id: user._id}) //fastify thing
