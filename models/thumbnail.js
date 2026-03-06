@@ -5,6 +5,7 @@ const thumbnailSchema = new mongoose.Schema({
     videoName: {type: String, required: true},
     version: {type:String},
     image: {type: String, required: true},
+    publicId:  { type: String }, 
     paid: {type: String, default: false},
 
 
