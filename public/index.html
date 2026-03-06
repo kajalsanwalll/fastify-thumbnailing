@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thumbify — Thumbnail Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #e8ff47;
+    --accent2: #7b5cfa;
+    --text: #f0f0f8;
+    --muted: #6b6b85;
+    --danger: #ff4d6d;
+    --success: #47ffb2;
+    --radius: 12px;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── GLOW BG ── */
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb.a { width: 500px; height: 500px; background: rgba(123,92,250,0.12); top: -100px; left: -100px; }
+  .glow-orb.b { width: 400px; height: 400px; background: rgba(232,255,71,0.06); bottom: -80px; right: -80px; }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .nav-right { display: flex; gap: 12px; align-items: center; }
+  .user-chip {
+    display: none;
+    align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .user-chip.visible { display: flex; }
+  .user-chip strong { color: var(--text); }
+
+  /* ── PAGES ── */
+  .page { display: none; min-height: calc(100vh - 65px); position: relative; z-index: 1; }
+  .page.active { display: block; }
+
+  /* ── AUTH PAGE ── */
+  .auth-wrap {
+    display: flex; align-items: center; justify-content: center;
+    min-height: calc(100vh - 65px);
+    padding: 40px 20px;
+  }
+  .auth-card {
+    width: 100%; max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    animation: slideUp 0.4s ease both;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .auth-title {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+  }
+  .auth-sub {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-bottom: 32px;
+  }
+  .tab-row {
+    display: flex; gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    flex: 1; padding: 9px;
+    background: transparent;
+    border: none; border-radius: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #0a0a0f;
+    font-weight: 600;
+  }
+
+  /* ── FORM ELEMENTS ── */
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.05em; }
+  input[type=text], input[type=email], input[type=password], input[type=file], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
+  input[type=file] { padding: 9px 14px; cursor: pointer; }
+  input[type=file]::file-selector-button {
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #0a0a0f;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 24px;
+    border: none; border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    width: 100%;
+    font-weight: 700;
+  }
+  .btn-primary:hover { background: #d4e83f; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid rgba(255,77,109,0.4);
+    color: var(--danger);
+    font-size: 0.78rem;
+    padding: 7px 14px;
+  }
+  .btn-danger:hover { background: rgba(255,77,109,0.1); }
+  .btn-sm { padding: 8px 16px; font-size: 0.8rem; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9000;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .toast-item {
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    animation: toastIn 0.3s ease both;
+    max-width: 320px;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .toast-item.success { background: var(--success); color: #0a0a0f; }
+  .toast-item.error   { background: var(--danger);  color: #fff; }
+  .toast-item.info    { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+  /* ── DASHBOARD ── */
+  .dash-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sidebar-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 0 12px;
+    margin-bottom: 4px;
+    margin-top: 16px;
+  }
+  .sidebar-label:first-child { margin-top: 0; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none; background: none; text-align: left; width: 100%;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(232,255,71,0.1); color: var(--accent); }
+  .nav-item svg { opacity: 0.7; flex-shrink: 0; }
+  .nav-item.active svg { opacity: 1; }
+  .sidebar-spacer { flex: 1; }
+  .logout-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--danger);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none; background: none; text-align: left; width: 100%;
+    font-family: var(--font-mono);
+  }
+  .logout-btn:hover { background: rgba(255,77,109,0.1); }
+
+  .main-content { padding: 36px 40px; overflow-y: auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .section-sub { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    animation: slideUp 0.4s ease both;
+  }
+  .stat-card:nth-child(2) { animation-delay: 0.05s; }
+  .stat-card:nth-child(3) { animation-delay: 0.1s; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: var(--font-head); font-size: 2rem; font-weight: 800; }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.purple { color: var(--accent2); }
+
+  /* ── UPLOAD CARD ── */
+  .upload-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 32px;
+    animation: slideUp 0.3s ease both;
+  }
+  .upload-card h3 {
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .upload-grid .full { grid-column: 1 / -1; }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent2);
+    background: rgba(123,92,250,0.05);
+  }
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+  .drop-zone-icon { font-size: 2rem; margin-bottom: 8px; }
+  .drop-zone-text { font-size: 0.82rem; color: var(--muted); }
+  .drop-zone-text strong { color: var(--text); }
+  .preview-thumb {
+    width: 100%; max-height: 160px; object-fit: cover;
+    border-radius: 8px; margin-top: 12px; display: none;
+  }
+
+  /* ── THUMBNAIL GRID ── */
+  .thumb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .thumb-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all 0.2s;
+    animation: slideUp 0.35s ease both;
+  }
+  .thumb-card:hover { border-color: var(--accent2); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(123,92,250,0.15); }
+  .thumb-img-wrap {
+    position: relative;
+    height: 145px;
+    background: var(--surface2);
+    overflow: hidden;
+  }
+  .thumb-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.3s;
+  }
+  .thumb-card:hover .thumb-img-wrap img { transform: scale(1.04); }
+  .thumb-paid-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--accent);
+    color: #0a0a0f;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+  }
+  .thumb-body { padding: 14px 16px; }
+  .thumb-name {
+    font-family: var(--font-head);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .thumb-version {
+    font-size: 0.72rem; color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .thumb-actions { display: flex; gap: 8px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state h3 { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 0.82rem; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%; max-width: 460px;
+    animation: slideUp 0.3s ease both;
+  }
+  .modal-title {
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+  }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── FORGOT/RESET ── */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--muted); font-size: 0.8rem;
+    cursor: pointer; margin-bottom: 20px;
+    background: none; border: none; font-family: var(--font-mono);
+  }
+  .back-link:hover { color: var(--text); }
+
+  /* ── PROFILE PAGE ── */
+  .profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 480px;
+    animation: slideUp 0.3s ease both;
+  }
+  .profile-avatar {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-size: 1.5rem; font-weight: 800;
+    color: #0a0a0f;
+    margin-bottom: 20px;
+  }
+  .profile-name { font-family: var(--font-head); font-size: 1.4rem; font-weight: 800; }
+  .profile-email { color: var(--muted); font-size: 0.82rem; margin-bottom: 24px; }
+  .profile-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-row span:first-child { color: var(--muted); }
+
+  @media (max-width: 900px) {
+    .dash-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .upload-grid { grid-template-columns: 1fr; }
+    .main-content { padding: 24px 20px; }
+    nav { padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Thumb<span>ify</span></div>
+  <div class="nav-right">
+    <div class="user-chip" id="userChip">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <strong id="chipName">—</strong>
+    </div>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     AUTH PAGE
+══════════════════════════════════════ -->
+<div class="page active" id="authPage">
+  <div class="auth-wrap">
+    <div class="auth-card" id="authCard">
+
+      <!-- LOGIN / REGISTER -->
+      <div id="formPanel">
+        <div class="auth-title">Welcome back.</div>
+        <div class="auth-sub">Sign in or create your account below.</div>
+
+        <div class="tab-row">
+          <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+          <button class="tab-btn" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginForm">
+          <div class="field">
+            <label>EMAIL</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label>PASSWORD</label>
+            <input type="password" id="loginPassword" placeholder="••••••••">
+          </div>
+          <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">
+            <span>Sign In</span>
+          </button>
+          <div style="text-align:center; margin-top:14px;">
+            <button onclick="showForgot()" style="background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:var(--font-mono);">
+              Forgot password?
+            </button>
+          </div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerForm" style="display:none">
+          <div class="field">
+            <label>FULL NAME</label>
+            <input type="text" id="regName" placeholder="Kajal Sanwal">
+          </div>
+          <div class="field">
+            <label>EMAIL</label>
+            <input type="email" id="regEmail" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label>PASSWORD</label>
+            <input type="password" id="regPassword" placeholder="Min 8 characters">
+          </div>
+          <div class="field">
+            <label>COUNTRY <span style="color:var(--muted)">(optional)</span></label>
+            <input type="text" id="regCountry" placeholder="India">
+          </div>
+          <button class="btn btn-primary" id="registerBtn" onclick="doRegister()">
+            <span>Create Account</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FORGOT PASSWORD -->
+      <div id="forgotPanel" style="display:none">
+        <button class="back-link" onclick="showForm()">← Back</button>
+        <div class="auth-title">Reset password.</div>
+        <div class="auth-sub">Enter your email and we'll send you a reset link.</div>
+        <div class="field" style="margin-top:24px">
+          <label>EMAIL</label>
+          <input type="email" id="forgotEmail" placeholder="you@example.com">
+        </div>
+        <button class="btn btn-primary" id="forgotBtn" onclick="doForgot()">Send Reset Link</button>
+        <div id="resetUrlBox" style="display:none; margin-top:20px; padding:14px; background:var(--surface2); border-radius:10px; font-size:0.75rem; word-break:break-all; color:var(--muted);"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DASHBOARD PAGE
+══════════════════════════════════════ -->
+<div class="page" id="dashPage">
+  <div class="dash-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <span class="sidebar-label">Navigation</span>
+      <button class="nav-item active" onclick="showSection('overview')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" onclick="showSection('thumbnails')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Thumbnails
+      </button>
+      <button class="nav-item" onclick="showSection('upload')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload
+      </button>
+      <button class="nav-item" onclick="showSection('profile')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Profile
+      </button>
+      <div class="sidebar-spacer"></div>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- OVERVIEW SECTION -->
+      <div class="section active" id="overviewSection">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Overview</div>
+            <div class="section-sub">Your thumbnail workspace at a glance.</div>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Thumbnails</div>
+            <div class="stat-value accent" id="statTotal">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Paid Thumbnails</div>
+            <div class="stat-value purple" id="statPaid">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Free Thumbnails</div>
+            <div class="stat-value" id="statFree">—</div>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;color:var(--muted);">
+          <div style="font-size:2rem;margin-bottom:12px;">⚡</div>
+          <div style="font-family:var(--font-head);font-size:1rem;color:var(--text);font-weight:700;margin-bottom:6px;">Quick Actions</div>
+          <div style="font-size:0.8rem;margin-bottom:20px;">Jump right in.</div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="width:auto;" onclick="showSection('upload')">Upload New Thumbnail</button>
+            <button class="btn btn-ghost" onclick="showSection('thumbnails')">Browse All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- THUMBNAILS SECTION -->
+      <div class="section" id="thumbnailsSection">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Thumbnails</div>
+            <div class="section-sub">All your uploaded thumbnails.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()">Delete All</button>
+        </div>
+        <div class="thumb-grid" id="thumbGrid">
+          <div class="empty-state" style="grid-column:1/-1">
+            <div class="empty-icon">🖼️</div>
+            <h3>No thumbnails yet</h3>
+            <p>Upload your first thumbnail to get started.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOAD SECTION -->
+      <div class="section" id="uploadSection">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Upload</div>
+            <div class="section-sub">Add a new thumbnail to your collection.</div>
+          </div>
+        </div>
+        <div class="upload-card">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            New Thumbnail
+          </h3>
+          <div class="upload-grid">
+            <div class="field">
+              <label>VIDEO NAME</label>
+              <input type="text" id="upVideoName" placeholder="My Awesome Video">
+            </div>
+            <div class="field">
+              <label>VERSION</label>
+              <input type="text" id="upVersion" placeholder="v1, v2, final...">
+            </div>
+            <div class="field full">
+              <label>THUMBNAIL IMAGE</label>
+              <div class="drop-zone" id="dropZone">
+                <input type="file" id="upFile" accept="image/*" onchange="previewFile(this)">
+                <div class="drop-zone-icon">🎨</div>
+                <div class="drop-zone-text"><strong>Click to choose</strong> or drag & drop</div>
+                <div class="drop-zone-text" style="margin-top:4px;">PNG, JPG, WEBP up to 10MB</div>
+                <img class="preview-thumb" id="previewImg" src="" alt="">
+              </div>
+            </div>
+            <div class="field">
+              <label>TYPE</label>
+              <select id="upPaid">
+                <option value="false">Free</option>
+                <option value="true">Paid</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" id="uploadBtn" onclick="doUpload()" style="width:100%">
+                <span>Upload Thumbnail</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE SECTION -->
+      <div class="section" id="profileSection">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Profile</div>
+            <div class="section-sub">Your account information.</div>
+          </div>
+        </div>
+        <div class="profile-card">
+          <div class="profile-avatar" id="profileAvatar">?</div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-email" id="profileEmail">—</div>
+          <div class="divider"></div>
+          <div class="profile-row">
+            <span>Country</span>
+            <span id="profileCountry">—</span>
+          </div>
+          <div class="profile-row">
+            <span>Account type</span>
+            <span style="color:var(--accent)">Free</span>
+          </div>
+          <div style="margin-top:24px;">
+            <button class="btn btn-danger" onclick="doLogout()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">Edit Thumbnail</div>
+    <input type="hidden" id="editId">
+    <div class="field">
+      <label>VIDEO NAME</label>
+      <input type="text" id="editVideoName">
+    </div>
+    <div class="field">
+      <label>VERSION</label>
+      <input type="text" id="editVersion">
+    </div>
+    <div class="field">
+      <label>TYPE</label>
+      <select id="editPaid">
+        <option value="false">Free</option>
+        <option value="true">Paid</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn btn-primary" id="saveEditBtn" onclick="doEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ALL CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteAllModal">
+  <div class="modal">
+    <div class="modal-title">Delete all thumbnails?</div>
+    <p style="color:var(--muted);font-size:0.85rem;">This will permanently delete all your thumbnails and their image files. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('deleteAllModal')">Cancel</button>
+      <button class="btn" style="background:var(--danger);color:#fff;flex:1" onclick="doDeleteAll()">Delete All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:3000';
+  let token = localStorage.getItem('token') || null;
+  let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+  /* ── INIT ── */
+  function init() {
+    if (token) {
+      showDash();
+    } else {
+      showAuth();
+    }
+  }
+
+  function showAuth() {
+    document.getElementById('authPage').classList.add('active');
+    document.getElementById('dashPage').classList.remove('active');
+    document.getElementById('userChip').classList.remove('visible');
+  }
+
+  function showDash() {
+    document.getElementById('authPage').classList.remove('active');
+    document.getElementById('dashPage').classList.add('active');
+    if (currentUser) {
+      document.getElementById('chipName').textContent = currentUser.name || 'User';
+      document.getElementById('userChip').classList.add('visible');
+      document.getElementById('profileName').textContent = currentUser.name || '—';
+      document.getElementById('profileEmail').textContent = currentUser.email || '—';
+      document.getElementById('profileCountry').textContent = currentUser.country || 'Not specified';
+      document.getElementById('profileAvatar').textContent = (currentUser.name || 'U')[0].toUpperCase();
+    }
+    loadThumbnails();
+  }
+
+  /* ── TAB SWITCH ── */
+  function switchTab(tab) {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs[0].classList.toggle('active', tab === 'login');
+    tabs[1].classList.toggle('active', tab === 'register');
+    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+  }
+
+  function showForgot() {
+    document.getElementById('formPanel').style.display = 'none';
+    document.getElementById('forgotPanel').style.display = 'block';
+  }
+  function showForm() {
+    document.getElementById('formPanel').style.display = 'block';
+    document.getElementById('forgotPanel').style.display = 'none';
+  }
+
+  /* ── SECTION NAV ── */
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(name + 'Section').classList.add('active');
+    const navMap = { overview: 0, thumbnails: 1, upload: 2, profile: 3 };
+    document.querySelectorAll('.nav-item')[navMap[name]]?.classList.add('active');
+    if (name === 'thumbnails') loadThumbnails();
+  }
+
+  /* ── TOAST ── */
+  function toast(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast-item ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  /* ── LOADING BUTTON ── */
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    const span = btn.querySelector('span');
+    let spinner = btn.querySelector('.spinner');
+    if (loading) {
+      if (!spinner) { spinner = document.createElement('div'); spinner.className = 'spinner'; btn.prepend(spinner); }
+      if (span) span.textContent = 'Please wait…';
+    } else {
+      if (spinner) spinner.remove();
+    }
+  }
+
+  /* ── AUTH ACTIONS ── */
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) return toast('Fill in all fields.', 'error');
+    setLoading('loginBtn', true);
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return toast(data.message || 'Login failed.', 'error');
+      token = data.token;
+      localStorage.setItem('token', token);
+      // store user info from email since backend just returns token
+      currentUser = { email, name: email.split('@')[0] };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      toast('Welcome back!', 'success');
+      showDash();
+    } catch { toast('Network error.', 'error'); }
+    finally { setLoading('loginBtn', false); const s = document.getElementById('loginBtn').querySelector('span'); if(s) s.textContent = 'Sign In'; }
+  }
+
+  async function doRegister() {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const country = document.getElementById('regCountry').value.trim();
+    if (!name || !email || !password) return toast('Name, email, and password are required.', 'error');
+    setLoading('registerBtn', true);
+    try {
+      const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, email, password, country })
+      });
+      const data = await res.json();
+      if (!res.ok) return toast(data.message || 'Registration failed.', 'error');
+      toast('Account created! Please log in.', 'success');
+      switchTab('login');
+      document.getElementById('loginEmail').value = email;
+    } catch { toast('Network error.', 'error'); }
+    finally { setLoading('registerBtn', false); const s = document.getElementById('registerBtn').querySelector('span'); if(s) s.textContent = 'Create Account'; }
+  }
+
+  async function doForgot() {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if (!email) return toast('Enter your email.', 'error');
+    setLoading('forgotBtn', true);
+    try {
+      const res = await fetch(`${API}/api/auth/forgot-password`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) return toast(data.message || 'Failed.', 'error');
+      const box = document.getElementById('resetUrlBox');
+      box.style.display = 'block';
+      box.textContent = '🔗 Reset URL: ' + (data.resetUrl || 'Check your email.');
+      toast('Reset link generated!', 'success');
+    } catch { toast('Network error.', 'error'); }
+    finally { setLoading('forgotBtn', false); }
+  }
+
+  function doLogout() {
+    fetch(`${API}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(()=>{});
+    token = null;
+    currentUser = null;
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
+    toast('Logged out.', 'info');
+    showAuth();
+  }
+
+  /* ── FILE PREVIEW ── */
+  function previewFile(input) {
+    const file = input.files[0];
+    const img = document.getElementById('previewImg');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  /* ── DRAG & DROP ── */
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) { document.getElementById('upFile').files = e.dataTransfer.files; previewFile(document.getElementById('upFile')); }
+  });
+
+  /* ── THUMBNAILS ── */
+  async function loadThumbnails() {
+    try {
+      const res = await fetch(`${API}/api/thumbnail`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      renderThumbs(Array.isArray(data) ? data : []);
+    } catch { toast('Failed to load thumbnails.', 'error'); }
+  }
+
+  function renderThumbs(list) {
+    const grid = document.getElementById('thumbGrid');
+    // Update stats
+    const paid = list.filter(t => t.paid === true || t.paid === 'true').length;
+    document.getElementById('statTotal').textContent = list.length;
+    document.getElementById('statPaid').textContent = paid;
+    document.getElementById('statFree').textContent = list.length - paid;
+
+    if (!list.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">🖼️</div><h3>No thumbnails yet</h3>
+        <p>Upload your first thumbnail to get started.</p>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = list.map((t, i) => `
+      <div class="thumb-card" style="animation-delay:${i * 0.04}s">
+        <div class="thumb-img-wrap">
+          <img src="${API}/${t.image}" alt="${t.videoName}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'240\\' height=\\'145\\'><rect width=\\'240\\' height=\\'145\\' fill=\\'%231c1c28\\'/><text x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' fill=\\'%236b6b85\\' dy=\\'.3em\\' font-size=\\'12\\'>No preview</text></svg>'">
+          ${t.paid === true || t.paid === 'true' ? '<div class="thumb-paid-badge">PAID</div>' : ''}
+        </div>
+        <div class="thumb-body">
+          <div class="thumb-name" title="${t.videoName}">${t.videoName}</div>
+          <div class="thumb-version">${t.version || 'No version'}</div>
+          <div class="thumb-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openEdit('${t._id}', '${escH(t.videoName)}', '${escH(t.version||'')}', '${t.paid}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="doDelete('${t._id}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escH(s) { return (s||'').replace(/'/g, "\\'"); }
+
+  async function doUpload() {
+    const videoName = document.getElementById('upVideoName').value.trim();
+    const version   = document.getElementById('upVersion').value.trim();
+    const paid      = document.getElementById('upPaid').value;
+    const file      = document.getElementById('upFile').files[0];
+    if (!videoName) return toast('Video name is required.', 'error');
+    if (!file) return toast('Please select an image.', 'error');
+    setLoading('uploadBtn', true);
+    const fd = new FormData();
+    fd.append('videoName', videoName);
+    fd.append('version', version);
+    fd.append('paid', paid);
+    fd.append('file', file);
+    try {
+      const res = await fetch(`${API}/api/thumbnail`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd
+      });
+      const data = await res.json();
+      if (!res.ok) return toast(data.message || 'Upload failed.', 'error');
+      toast('Thumbnail uploaded!', 'success');
+      document.getElementById('upVideoName').value = '';
+      document.getElementById('upVersion').value = '';
+      document.getElementById('upFile').value = '';
+      document.getElementById('previewImg').style.display = 'none';
+      showSection('thumbnails');
+    } catch { toast('Network error.', 'error'); }
+    finally { setLoading('uploadBtn', false); const s = document.getElementById('uploadBtn').querySelector('span'); if(s) s.textContent = 'Upload Thumbnail'; }
+  }
+
+  async function doDelete(id) {
+    if (!confirm('Delete this thumbnail?')) return;
+    try {
+      const res = await fetch(`${API}/api/thumbnail/${id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) { const d = await res.json(); return toast(d.message || 'Delete failed.', 'error'); }
+      toast('Deleted!', 'success');
+      loadThumbnails();
+    } catch { toast('Network error.', 'error'); }
+  }
+
+  function confirmDeleteAll() { document.getElementById('deleteAllModal').classList.add('open'); }
+
+  async function doDeleteAll() {
+    closeModal('deleteAllModal');
+    try {
+      const res = await fetch(`${API}/api/thumbnail`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) { const d = await res.json(); return toast(d.message || 'Failed.', 'error'); }
+      toast('All thumbnails deleted.', 'success');
+      loadThumbnails();
+    } catch { toast('Network error.', 'error'); }
+  }
+
+  function openEdit(id, videoName, version, paid) {
+    document.getElementById('editId').value = id;
+    document.getElementById('editVideoName').value = videoName;
+    document.getElementById('editVersion').value = version;
+    document.getElementById('editPaid').value = paid === 'true' || paid === true ? 'true' : 'false';
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  async function doEdit() {
+    const id        = document.getElementById('editId').value;
+    const videoName = document.getElementById('editVideoName').value.trim();
+    const version   = document.getElementById('editVersion').value.trim();
+    const paid      = document.getElementById('editPaid').value;
+    if (!videoName) return toast('Video name required.', 'error');
+    setLoading('saveEditBtn', true);
+    try {
+      const res = await fetch(`${API}/api/thumbnail/${id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoName, version, paid: paid === 'true' })
+      });
+      const data = await res.json();
+      if (!res.ok) return toast(data.message || 'Update failed.', 'error');
+      toast('Thumbnail updated!', 'success');
+      closeModal('editModal');
+      loadThumbnails();
+    } catch { toast('Network error.', 'error'); }
+    finally { setLoading('saveEditBtn', false); const s = document.getElementById('saveEditBtn').querySelector('span'); if(s) s.textContent = 'Save Changes'; }
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  init();
+</script>
+</body>
+</html>

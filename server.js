@@ -8,10 +8,15 @@ const fastify = require("fastify")({logger:true})
 fastify.register(require("@fastify/cors"))
 fastify.register(require("@fastify/sensible"))
 fastify.register(require("@fastify/multipart"))
-fastify.register(require("@fastify/static", {
+fastify.register(require("@fastify/static"), {
     root: path.join(__dirname, "uploads"),
     prefix: "/uploads/",
-}))
+})
+fastify.register(require("@fastify/static"), {
+  root: path.join(__dirname, "public"),
+  prefix: "/",
+  decorateReply: false  // needed because you already registered @fastify/static once
+})
 fastify.register(require("@fastify/env"),{
     dotenv: true,
     schema:{
