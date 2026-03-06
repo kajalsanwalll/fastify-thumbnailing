@@ -127,16 +127,18 @@ fastify.register(fastifyEnv, options).ready((err) => {
 })
 */
 
-const start = async () => {
+if (require.main === module) {
+  // local dev — start normally
+  const start = async () => {
     try {
-        await fastify.listen({port: process.env.PORT})
-        fastify.log.info(
-            `Server is running at http://localhost:${process.env.PORT}`
-        )
+      await fastify.listen({ port: process.env.PORT || 3000 });
+      fastify.log.info(`Server running at http://localhost:${process.env.PORT || 3000}`);
     } catch (err) {
-        fastify.log.error(err)
-        process.exit(1)
+      fastify.log.error(err);
+      process.exit(1);
     }
+  };
+  start();
 }
 
-start();
+module.exports = fastify; // export for Vercel
