@@ -1016,7 +1016,7 @@
     grid.innerHTML = list.map((t, i) => `
       <div class="thumb-card" style="animation-delay:${i * 0.04}s">
         <div class="thumb-img-wrap">
-          <img src="${API}/${t.image}" alt="${t.videoName}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'240\\' height=\\'145\\'><rect width=\\'240\\' height=\\'145\\' fill=\\'%231c1c28\\'/><text x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' fill=\\'%236b6b85\\' dy=\\'.3em\\' font-size=\\'12\\'>No preview</text></svg>'">
+          <img src="${API}${t.image}" alt="${t.videoName}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'240\\' height=\\'145\\'><rect width=\\'240\\' height=\\'145\\' fill=\\'%231c1c28\\'/><text x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' fill=\\'%236b6b85\\' dy=\\'.3em\\' font-size=\\'12\\'>No preview</text></svg>'">
           ${t.paid === true || t.paid === 'true' ? '<div class="thumb-paid-badge">PAID</div>' : ''}
         </div>
         <div class="thumb-body">

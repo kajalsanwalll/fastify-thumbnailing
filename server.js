@@ -3,6 +3,13 @@ const path = require("path");
 const fastifyEnv = require("@fastify/env")
 const fastify = require("fastify")({logger:true})
 
+const fs = require("fs");
+
+// auto-create uploads/thumbnails if it doesn't exist
+const uploadsDir = path.join(__dirname, "uploads", "thumbnails");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 //register plugins
 fastify.register(require("@fastify/cors"), {
@@ -12,7 +19,10 @@ fastify.register(require("@fastify/cors"), {
 })
 fastify.register(require("@fastify/sensible"))
 fastify.register(require("@fastify/multipart"), {
-  attachFieldsToBody: false
+  attachFieldsToBody: false,
+  limits: {
+    fileSize: 10 * 1024 * 1024  // 10MB
+  }
 })
 fastify.register(require("@fastify/static"), {
     root: path.join(__dirname, "uploads"),
