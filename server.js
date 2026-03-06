@@ -2,7 +2,7 @@ require("dotenv").config();
 const path = require("path");
 const fastify = require("fastify")({ logger: true });
 
-// plugins
+// register plugins
 fastify.register(require("@fastify/cors"), {
     origin: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -14,11 +14,11 @@ fastify.register(require("@fastify/sensible"));
 fastify.register(require("@fastify/multipart"), {
     attachFieldsToBody: false,
     limits: {
-        fileSize: 10 * 1024 * 1024
+        fileSize: 10 * 1024 * 1024  // 10MB
     }
 });
 
-// static files locally only
+// Only serve static files locally — Vercel has no local filesystem
 if (process.env.NODE_ENV !== "production") {
     const fs = require("fs");
 
@@ -39,34 +39,26 @@ if (process.env.NODE_ENV !== "production") {
     });
 }
 
-// env
 fastify.register(require("@fastify/env"), {
     dotenv: true,
     schema: {
         type: "object",
-        required: ["MONGODB_URI", "JWT_TOKEN"],
+        required: ["MONGODB_URI", "JWT_TOKEN"],  // removed PORT — Vercel sets its own
         properties: {
-            PORT: { type: "string", default: "3000" },
+            PORT:        { type: "string", default: "3000" },
             MONGODB_URI: { type: "string" },
-            JWT_TOKEN: { type: "string" }
+            JWT_TOKEN:   { type: "string" }
         }
     }
 });
 
-// custom plugins
+// register custom plugins
 fastify.register(require("./plugins/mongoDb.js"));
 fastify.register(require("./plugins/jwt.js"));
 
-// routes
-fastify.register(require("./routes/auth.js"), { prefix: "/api/auth" });
+// register routes
+fastify.register(require("./routes/auth.js"),      { prefix: "/api/auth" });
 fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
-
-/* 🔹 ROOT ROUTE (ADD THIS) */
-fastify.get("/", async (request, reply) => {
-    return {
-        message: "Fastify Thumbnail API is running 🚀"
-    };
-});
 
 // health check
 fastify.get("/test-db", async (request, reply) => {
@@ -80,7 +72,6 @@ fastify.get("/test-db", async (request, reply) => {
     }
 });
 
-// local server (NOT used by Vercel)
 if (require.main === module) {
     const start = async () => {
         try {
