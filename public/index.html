@@ -205,6 +205,16 @@
     padding: 7px 14px;
   }
   .btn-danger:hover { background: rgba(255,77,109,0.1); }
+  /* ── NEW: DOWNLOAD BUTTON ── */
+  .btn-download {
+    background: transparent;
+    border: 1px solid rgba(232,255,71,0.3);
+    color: var(--accent);
+    font-size: 0.78rem;
+    padding: 7px 14px;
+  }
+  .btn-download:hover { background: rgba(232,255,71,0.08); }
+  .btn-download.loading { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
   .btn-sm { padding: 8px 16px; font-size: 0.8rem; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
@@ -410,7 +420,7 @@
     font-size: 0.72rem; color: var(--muted);
     margin-bottom: 14px;
   }
-  .thumb-actions { display: flex; gap: 8px; }
+  .thumb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
   /* ── EMPTY STATE ── */
   .empty-state {
@@ -521,14 +531,11 @@
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- ══════════════════════════════════════
-     AUTH PAGE
-══════════════════════════════════════ -->
+<!-- AUTH PAGE -->
 <div class="page active" id="authPage">
   <div class="auth-wrap">
     <div class="auth-card" id="authCard">
 
-      <!-- LOGIN / REGISTER -->
       <div id="formPanel">
         <div class="auth-title">Welcome back.</div>
         <div class="auth-sub">Sign in or create your account below.</div>
@@ -599,9 +606,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     DASHBOARD PAGE
-══════════════════════════════════════ -->
+<!-- DASHBOARD PAGE -->
 <div class="page" id="dashPage">
   <div class="dash-layout">
 
@@ -907,7 +912,6 @@
       if (!res.ok) return toast(data.message || 'Login failed.', 'error');
       token = data.token;
       localStorage.setItem('token', token);
-      // store user info from email since backend just returns token
       currentUser = { email, name: email.split('@')[0] };
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
       toast('Welcome back!', 'success');
@@ -998,9 +1002,10 @@
     } catch { toast('Failed to load thumbnails.', 'error'); }
   }
 
+  function escH(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
   function renderThumbs(list) {
     const grid = document.getElementById('thumbGrid');
-    // Update stats
     const paid = list.filter(t => t.paid === true || t.paid === 'true').length;
     document.getElementById('statTotal').textContent = list.length;
     document.getElementById('statPaid').textContent = paid;
@@ -1016,13 +1021,17 @@
     grid.innerHTML = list.map((t, i) => `
       <div class="thumb-card" style="animation-delay:${i * 0.04}s">
         <div class="thumb-img-wrap">
-          <img src="${API}${t.image}" alt="${t.videoName}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'240\\' height=\\'145\\'><rect width=\\'240\\' height=\\'145\\' fill=\\'%231c1c28\\'/><text x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' fill=\\'%236b6b85\\' dy=\\'.3em\\' font-size=\\'12\\'>No preview</text></svg>'">
+          <img src="${API}${t.image}" alt="${escH(t.videoName)}" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'240\\' height=\\'145\\'><rect width=\\'240\\' height=\\'145\\' fill=\\'%231c1c28\\'/><text x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' fill=\\'%236b6b85\\' dy=\\'.3em\\' font-size=\\'12\\'>No preview</text></svg>'">
           ${t.paid === true || t.paid === 'true' ? '<div class="thumb-paid-badge">PAID</div>' : ''}
         </div>
         <div class="thumb-body">
-          <div class="thumb-name" title="${t.videoName}">${t.videoName}</div>
-          <div class="thumb-version">${t.version || 'No version'}</div>
+          <div class="thumb-name" title="${escH(t.videoName)}">${escH(t.videoName)}</div>
+          <div class="thumb-version">${escH(t.version || 'No version')}</div>
           <div class="thumb-actions">
+            <button class="btn btn-download btn-sm" id="dl-${t._id}" onclick="downloadThumb('${API}${t.image}', '${escH(t.videoName)}', '${t._id}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Save
+            </button>
             <button class="btn btn-ghost btn-sm" onclick="openEdit('${t._id}', '${escH(t.videoName)}', '${escH(t.version||'')}', '${t.paid}')">Edit</button>
             <button class="btn btn-danger btn-sm" onclick="doDelete('${t._id}')">Delete</button>
           </div>
@@ -1031,7 +1040,30 @@
     `).join('');
   }
 
-  function escH(s) { return (s||'').replace(/'/g, "\\'"); }
+  /* ── DOWNLOAD — blob-based, works cross-origin when deployed ── */
+  async function downloadThumb(url, name, id) {
+    const btn = document.getElementById('dl-' + id);
+    if (btn) btn.classList.add('loading');
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const ext = blob.type.split('/')[1] || 'png';
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${name || 'thumbnail'}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      toast('Download started!', 'success');
+    } catch {
+      toast('Download failed.', 'error');
+    } finally {
+      if (btn) btn.classList.remove('loading');
+    }
+  }
 
   async function doUpload() {
     const videoName = document.getElementById('upVideoName').value.trim();
@@ -1122,7 +1154,6 @@
 
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-  // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
   });
