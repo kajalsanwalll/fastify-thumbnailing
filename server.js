@@ -18,26 +18,16 @@ fastify.register(require("@fastify/multipart"), {
     }
 });
 
-// static files locally only
-if (process.env.NODE_ENV !== "production") {
-    const fs = require("fs");
+// serve frontend
+fastify.register(require("@fastify/static"), {
+    root: path.join(__dirname, "public"),
+    prefix: "/"
+});
 
-    const uploadsDir = path.join(__dirname, "uploads", "thumbnails");
-    if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    fastify.register(require("@fastify/static"), {
-        root: path.join(__dirname, "uploads"),
-        prefix: "/uploads/",
-    });
-
-    fastify.register(require("@fastify/static"), {
-        root: path.join(__dirname, "public"),
-        prefix: "/",
-        decorateReply: false
-    });
-}
+// root route
+fastify.get("/", async (req, reply) => {
+    return reply.sendFile("index.html");
+});
 
 // env
 fastify.register(require("@fastify/env"), {
@@ -61,13 +51,6 @@ fastify.register(require("./plugins/jwt.js"));
 fastify.register(require("./routes/auth.js"), { prefix: "/api/auth" });
 fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
 
-/* 🔹 ROOT ROUTE (ADD THIS) */
-fastify.get("/", async (request, reply) => {
-    return {
-        message: "Fastify Thumbnail API is running 🚀"
-    };
-});
-
 // health check
 fastify.get("/test-db", async (request, reply) => {
     try {
@@ -80,12 +63,10 @@ fastify.get("/test-db", async (request, reply) => {
     }
 });
 
-// local server (NOT used by Vercel)
 if (require.main === module) {
     const start = async () => {
         try {
             await fastify.listen({ port: process.env.PORT || 3000 });
-            fastify.log.info(`Server running at http://localhost:${process.env.PORT || 3000}`);
         } catch (err) {
             fastify.log.error(err);
             process.exit(1);
