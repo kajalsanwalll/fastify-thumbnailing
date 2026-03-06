@@ -61,19 +61,12 @@ fastify.register(require("./plugins/jwt.js"));
 fastify.register(require("./routes/auth.js"), { prefix: "/api/auth" });
 fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
 
-
-// ⭐ ROOT ROUTE (so "/" works on Vercel)
-fastify.get("/", async () => {
+/* 🔹 ROOT ROUTE (ADD THIS) */
+fastify.get("/", async (request, reply) => {
     return {
-        status: "Fastify API running 🚀",
-        endpoints: [
-            "/api/auth",
-            "/api/thumbnail",
-            "/test-db"
-        ]
+        message: "Fastify Thumbnail API is running 🚀"
     };
 });
-
 
 // health check
 fastify.get("/test-db", async (request, reply) => {
@@ -86,7 +79,6 @@ fastify.get("/test-db", async (request, reply) => {
         reply.status(500).send({ error: "failed to test database!" });
     }
 });
-
 
 // local server (NOT used by Vercel)
 if (require.main === module) {
