@@ -11,7 +11,8 @@ exports.createThumbnail = async (request, reply) => {
 
     try {
         
-        const parts = request.part();
+        const parts = request.parts
+        ();
 
         let fields = {};
         let filename;
@@ -20,7 +21,7 @@ exports.createThumbnail = async (request, reply) => {
 
             if(part.file){
 
-                const filename =`${Date.now()}-${part.filename}`
+                filename =`${Date.now()}-${part.filename}`
                 const saveTo = path.join(
                     __dirname,
                     "..",

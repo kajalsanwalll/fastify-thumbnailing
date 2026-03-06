@@ -11,7 +11,9 @@ fastify.register(require("@fastify/cors"), {
   allowedHeaders: ["Content-Type", "Authorization"]
 })
 fastify.register(require("@fastify/sensible"))
-fastify.register(require("@fastify/multipart"))
+fastify.register(require("@fastify/multipart"), {
+  attachFieldsToBody: false
+})
 fastify.register(require("@fastify/static"), {
     root: path.join(__dirname, "uploads"),
     prefix: "/uploads/",
