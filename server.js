@@ -5,7 +5,11 @@ const fastify = require("fastify")({logger:true})
 
 
 //register plugins
-fastify.register(require("@fastify/cors"))
+fastify.register(require("@fastify/cors"), {
+  origin: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+})
 fastify.register(require("@fastify/sensible"))
 fastify.register(require("@fastify/multipart"))
 fastify.register(require("@fastify/static"), {
@@ -41,9 +45,9 @@ fastify.register(require("./routes/auth.js"), {prefix: "/api/auth"})
 fastify.register(require("./routes/thumbnail.js"), {prefix: "/api/thumbnail"})
 
 //Declare a route
-fastify.get('/', function(request, reply){
-    reply.send({hello: 'world'})
-})
+//fastify.get('/', function(request, reply){
+//    reply.send({hello: 'world'})
+//})
 
 //test database connection
 fastify.get("/test-db", async(request, reply) => {
