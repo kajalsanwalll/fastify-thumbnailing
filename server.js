@@ -1,144 +1,88 @@
 require("dotenv").config();
 const path = require("path");
-const fastifyEnv = require("@fastify/env")
-const fastify = require("fastify")({logger:true})
+const fastify = require("fastify")({ logger: true });
 
-const fs = require("fs");
+// register plugins
+fastify.register(require("@fastify/cors"), {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+});
 
-// auto-create uploads/thumbnails if it doesn't exist
-const uploadsDir = path.join(__dirname, "uploads", "thumbnails");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+fastify.register(require("@fastify/sensible"));
+
+fastify.register(require("@fastify/multipart"), {
+    attachFieldsToBody: false,
+    limits: {
+        fileSize: 10 * 1024 * 1024  // 10MB
+    }
+});
+
+// Only serve static files locally — Vercel has no local filesystem
+if (process.env.NODE_ENV !== "production") {
+    const fs = require("fs");
+
+    const uploadsDir = path.join(__dirname, "uploads", "thumbnails");
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    fastify.register(require("@fastify/static"), {
+        root: path.join(__dirname, "uploads"),
+        prefix: "/uploads/",
+    });
+
+    fastify.register(require("@fastify/static"), {
+        root: path.join(__dirname, "public"),
+        prefix: "/",
+        decorateReply: false
+    });
 }
 
-//register plugins
-fastify.register(require("@fastify/cors"), {
-  origin: true,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-})
-fastify.register(require("@fastify/sensible"))
-fastify.register(require("@fastify/multipart"), {
-  attachFieldsToBody: false,
-  limits: {
-    fileSize: 10 * 1024 * 1024  // 10MB
-  }
-})
-fastify.register(require("@fastify/static"), {
-    root: path.join(__dirname, "uploads"),
-    prefix: "/uploads/",
-})
-fastify.register(require("@fastify/static"), {
-  root: path.join(__dirname, "public"),
-  prefix: "/",
-  decorateReply: false  // needed because you already registered @fastify/static once
-})
-fastify.register(require("@fastify/env"),{
+fastify.register(require("@fastify/env"), {
     dotenv: true,
-    schema:{
+    schema: {
         type: "object",
-        required: ["PORT", "MONGODB_URI", "JWT_TOKEN"],
+        required: ["MONGODB_URI", "JWT_TOKEN"],  // removed PORT — Vercel sets its own
         properties: {
-            PORT:{
-                type: "string", default:3000
-            },
-            MONGODB_URI:{type: "string"},
-            JWT_TOKEN:{type: "string"}
+            PORT:        { type: "string", default: "3000" },
+            MONGODB_URI: { type: "string" },
+            JWT_TOKEN:   { type: "string" }
         }
     }
-})
+});
 
 // register custom plugins
 fastify.register(require("./plugins/mongoDb.js"));
 fastify.register(require("./plugins/jwt.js"));
 
-//register routes
-fastify.register(require("./routes/auth.js"), {prefix: "/api/auth"})
-fastify.register(require("./routes/thumbnail.js"), {prefix: "/api/thumbnail"})
+// register routes
+fastify.register(require("./routes/auth.js"),      { prefix: "/api/auth" });
+fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
 
-//Declare a route
-//fastify.get('/', function(request, reply){
-//    reply.send({hello: 'world'})
-//})
-
-//test database connection
-fastify.get("/test-db", async(request, reply) => {
-    
+// health check
+fastify.get("/test-db", async (request, reply) => {
     try {
         const mongoose = fastify.mongoose;
-        const connectionState = mongoose.connection.readyState;
-
-        let status = ""
-        switch (connectionState) {
-            case 0:
-                status = "disconnected!"
-                break;
-            case 1:
-                status = "connected!"
-                break;
-            case 2:
-                status = "connecting!"
-                break;
-            case 3:
-                status = "disconnecting!"
-                break;
-        
-            default:
-                status = "unknown!"
-                break;
-        }
-        reply.send({database: status})
-
-
+        const states = ["disconnected", "connected", "connecting", "disconnecting"];
+        reply.send({ database: states[mongoose.connection.readyState] || "unknown" });
     } catch (err) {
         fastify.log.error(err);
-        reply.status(500).send({error: "failed to test database!"})
-        process.exit(1);
+        reply.status(500).send({ error: "failed to test database!" });
     }
-})
-
-//fastify env ke liye
-/* const schema = {
-    type: "object",
-    required: ["PORT", "MONGODB_URI"],
-    properties: {
-        PORT:{
-            type: "string",
-            default: 4000,
-        },
-        MONGODB_URI:{
-
-        }
-    }
-}
-
-const options = {
-    confKey: "config",
-    schema: schema,
-    data: data,
-};
-
-fastify.register(fastifyEnv, options).ready((err) => {
-    if(err) console.error(err);
-
-    console.log(fastify.config);
-    console.log(fastify.getEnvs());
-    // output will be on port 4000 as it should be !
-})
-*/
+});
 
 if (require.main === module) {
-  // local dev — start normally
-  const start = async () => {
-    try {
-      await fastify.listen({ port: process.env.PORT || 3000 });
-      fastify.log.info(`Server running at http://localhost:${process.env.PORT || 3000}`);
-    } catch (err) {
-      fastify.log.error(err);
-      process.exit(1);
-    }
-  };
-  start();
+    const start = async () => {
+        try {
+            await fastify.listen({ port: process.env.PORT || 3000 });
+            fastify.log.info(`Server running at http://localhost:${process.env.PORT || 3000}`);
+        } catch (err) {
+            fastify.log.error(err);
+            process.exit(1);
+        }
+    };
+    start();
 }
 
-module.exports = fastify; // export for Vercel
+module.exports = fastify;
