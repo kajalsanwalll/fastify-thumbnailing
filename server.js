@@ -85,4 +85,7 @@ if (require.main === module) {
     start();
 }
 
-module.exports = fastify;
+module.exports = async (req, res) => {
+    await fastify.ready();
+    fastify.server.emit("request", req, res);
+};
