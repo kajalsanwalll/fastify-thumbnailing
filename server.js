@@ -2,7 +2,7 @@ require("dotenv").config();
 const path = require("path");
 const fastify = require("fastify")({ logger: true });
 
-// register plugins
+// plugins
 fastify.register(require("@fastify/cors"), {
     origin: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -14,11 +14,11 @@ fastify.register(require("@fastify/sensible"));
 fastify.register(require("@fastify/multipart"), {
     attachFieldsToBody: false,
     limits: {
-        fileSize: 10 * 1024 * 1024  // 10MB
+        fileSize: 10 * 1024 * 1024
     }
 });
 
-// Only serve static files locally — Vercel has no local filesystem
+// static files locally only
 if (process.env.NODE_ENV !== "production") {
     const fs = require("fs");
 
@@ -39,25 +39,26 @@ if (process.env.NODE_ENV !== "production") {
     });
 }
 
+// env
 fastify.register(require("@fastify/env"), {
     dotenv: true,
     schema: {
         type: "object",
-        required: ["MONGODB_URI", "JWT_TOKEN"],  // removed PORT — Vercel sets its own
+        required: ["MONGODB_URI", "JWT_TOKEN"],
         properties: {
-            PORT:        { type: "string", default: "3000" },
+            PORT: { type: "string", default: "3000" },
             MONGODB_URI: { type: "string" },
-            JWT_TOKEN:   { type: "string" }
+            JWT_TOKEN: { type: "string" }
         }
     }
 });
 
-// register custom plugins
+// custom plugins
 fastify.register(require("./plugins/mongoDb.js"));
 fastify.register(require("./plugins/jwt.js"));
 
-// register routes
-fastify.register(require("./routes/auth.js"),      { prefix: "/api/auth" });
+// routes
+fastify.register(require("./routes/auth.js"), { prefix: "/api/auth" });
 fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
 
 // health check
@@ -72,6 +73,7 @@ fastify.get("/test-db", async (request, reply) => {
     }
 });
 
+// local server (NOT used by Vercel)
 if (require.main === module) {
     const start = async () => {
         try {
@@ -85,7 +87,4 @@ if (require.main === module) {
     start();
 }
 
-module.exports = async (req, res) => {
-    await fastify.ready();
-    fastify.server.emit("request", req, res);
-};
+module.exports = fastify;
