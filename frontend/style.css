@@ -1,0 +1,16 @@
+body{
+font-family: Arial;
+text-align:center;
+margin-top:50px;
+}
+
+button{
+padding:10px 20px;
+cursor:pointer;
+}
+
+img{
+margin-top:20px;
+width:200px;
+border-radius:10px;
+}
