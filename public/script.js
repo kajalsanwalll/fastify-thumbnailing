@@ -1,81 +1,84 @@
+// Detect API automatically
+const API = window.location.hostname === "localhost"
+  ? "http://localhost:3000"
+  : window.location.origin;
+
+
 // =====================
 // AUTH
 // =====================
 
-const API = window.location.origin;
-
 async function signup(){
-    const username = document.getElementById("signupUsername").value;
-    const password = document.getElementById("signupPassword").value;
+    const username = document.getElementById("signupUsername").value
+    const password = document.getElementById("signupPassword").value
 
-    const response = await fetch(`${API}/api/auth/signup`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
+    const response = await fetch(`${API}/api/auth/signup`,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
         },
-        body: JSON.stringify({ username, password })
-    });
+        body:JSON.stringify({username,password})
+    })
 
-    const data = await response.json();
-    alert(data.message || JSON.stringify(data));
+    const data = await response.json()
+    alert(data.message || JSON.stringify(data))
 }
 
-
 async function login(){
-    const username = document.getElementById("loginUsername").value;
-    const password = document.getElementById("loginPassword").value;
+    const username = document.getElementById("loginUsername").value
+    const password = document.getElementById("loginPassword").value
 
-    const response = await fetch(`${API}/api/auth/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
+    const response = await fetch(`${API}/api/auth/login`,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
         },
-        body: JSON.stringify({ username, password })
-    });
+        body:JSON.stringify({username,password})
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
-    if (data.token) {
-        localStorage.setItem("token", data.token);
-        alert("Login successful");
-    } else {
-        alert(data.message || "Login failed");
+    if(data.token){
+        localStorage.setItem("token",data.token)
+        alert("Login successful")
+    }else{
+        alert(data.message || "Login failed")
     }
 }
 
 
 // =====================
-// IMAGE UPLOAD
+// UPLOAD IMAGE
 // =====================
 
 async function uploadImage(){
 
-    const fileInput = document.getElementById("imageInput");
+    const fileInput = document.getElementById("imageInput")
 
     if(!fileInput.files.length){
-        alert("Select an image first");
-        return;
+        alert("Select an image first")
+        return
     }
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token")
 
-    const formData = new FormData();
-    formData.append("image", fileInput.files[0]);
+    const formData = new FormData()
+    formData.append("image", fileInput.files[0])
 
-    const response = await fetch(`${API}/upload`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`
+    const response = await fetch(`${API}/upload`,{
+        method:"POST",
+        headers:{
+            Authorization:`Bearer ${token}`
         },
-        body: formData
-    });
+        body:formData
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
-    const resultDiv = document.getElementById("result");
+    const resultDiv = document.getElementById("result")
 
     resultDiv.innerHTML = `
         <h3>Thumbnail</h3>
         <img src="${API}/${data.thumbnail}" width="300"/>
-    `;
+    `
 }
