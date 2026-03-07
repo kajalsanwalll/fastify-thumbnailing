@@ -812,7 +812,7 @@
 </div>
 
 <script>
-  const API = 'http://localhost:3000';
+  const API = window.location.origin;
   let token = localStorage.getItem('token') || null;
   let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 

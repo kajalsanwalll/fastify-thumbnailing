@@ -39,12 +39,11 @@ if (process.env.NODE_ENV !== "production") {
     });
 }
 
-// ENV
 fastify.register(require("@fastify/env"), {
     dotenv: true,
     schema: {
         type: "object",
-        required: ["MONGODB_URI", "JWT_TOKEN"],
+        required: ["MONGODB_URI", "JWT_TOKEN"],  // removed PORT — Vercel sets its own
         properties: {
             PORT:        { type: "string", default: "3000" },
             MONGODB_URI: { type: "string" },
@@ -61,29 +60,6 @@ fastify.register(require("./plugins/jwt.js"));
 fastify.register(require("./routes/auth.js"),      { prefix: "/api/auth" });
 fastify.register(require("./routes/thumbnail.js"), { prefix: "/api/thumbnail" });
 
-
-// ----------------------
-// ROOT ROUTE (ADDED)
-// ----------------------
-
-fastify.get("/", async (request, reply) => {
-
-    // production (Vercel) → send index.html manually
-    if (process.env.NODE_ENV === "production") {
-        const fs = require("fs");
-        const filePath = path.join(__dirname, "public", "index.html");
-
-        if (fs.existsSync(filePath)) {
-            reply.type("text/html").send(fs.readFileSync(filePath));
-        } else {
-            reply.send({ message: "Thumbify API running 🚀" });
-        }
-    }
-
-    // development handled by fastify-static
-});
-
-
 // health check
 fastify.get("/test-db", async (request, reply) => {
     try {
@@ -96,17 +72,11 @@ fastify.get("/test-db", async (request, reply) => {
     }
 });
 
-
 if (require.main === module) {
     const start = async () => {
         try {
-            await fastify.listen({
-                port: process.env.PORT || 3000,
-                host: "0.0.0.0"
-            });
-
+            await fastify.listen({ port: process.env.PORT || 3000 });
             fastify.log.info(`Server running at http://localhost:${process.env.PORT || 3000}`);
-
         } catch (err) {
             fastify.log.error(err);
             process.exit(1);
