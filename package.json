@@ -23,6 +23,7 @@
     "fastify": "^5.7.4",
     "fastify-plugin": "^5.1.0",
     "mongoose": "^9.2.1",
+    "pump": "^3.0.4",
     "streamifier": "^0.1.1"
   },
   "devDependencies": {
