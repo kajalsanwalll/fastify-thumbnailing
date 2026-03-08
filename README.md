@@ -1,95 +1,61 @@
-🚀 Fastify Backend Mastery
+Fastify Backend Project
 --
-A production-style backend project built with Fastify to explore high-performance APIs, plugin architecture, authentication, and file handling using Node.js streams.
+A backend project built using Fastify to explore high-performance API development, authentication, and image handling.   
 
-⚡ Focus: speed, scalability, and clean backend architecture.
+The application allows users to upload, manage, and download their own thumbnails, with images stored using Cloudinary and deployed on Vercel. 
 
-✨ Features
+Features
 --
-🔥 High-performance Fastify server  
-🧩 Custom Fastify plugin system.   
-🔐 JWT-based authentication middleware.  
-📂 File upload & handling using Node.js streams.   
-🧠 Modular and scalable folder structure.   
-🛡️ Production-ready backend practices.  
-🚀 Clean REST API design.   
+High-performance Fastify server.  
+JWT-based authentication.  
+Upload and manage thumbnails.  
+Cloud image storage.   
+RESTful API structure.   
+Modular backend architecture.   
 
-🧱 Tech Stack
+Tech Stack
 --
-Runtime: Node.js.    
-Framework: Fastify.    
-Auth: fastify-jwt.    
-File Handling: Node.js Streams.    
-Language: JavaScript / TypeScript. 
+Runtime: Node.js.  
+Framework: Fastify.  
+Database: MongoDB.   
+Image Storage: Cloudinary.   
+Deployment: Vercel.   
+Language: JavaScript.  
 
-📁 Project Structure
+Project Structure
 --
-.
-├── src/.   
-│   ├── plugins/.  
-│   ├── routes/.  
-│   ├── middleware/.   
-│   ├── utils/.  
-│   └── server.js.  
-├── .env.example.  
-├── package.json.  
-└── README.md.  
+project-root.  
+├── controllers.  
+├── models.   
+├── plugins.   
+├── routes.  
+├── public.  
+├── api.   
+├── server.js.   
+└── vercel.json.  
 
-⚙️ Getting Started
+Getting Started
 --
-1️⃣ Clone the repo.  
-git clone https://github.com/your-username/your-repo.git.  
-cd your-repo.  
-2️⃣ Install dependencies  
-npm install.  
-3️⃣ Setup environment variables.  
-Create a .env file based on:
-PORT=3000  
-JWT_SECRET=your_secret_here.  
-4️⃣ Run the server.   
-npm run dev.  
-Server will start at:
-http://localhost:4000.   
+Clone the repository.  
+git clone repo's url.   
+cd repo-name.  
+Install dependencies using:  
+npm install.      
+Run the server.   
+npm run dev.   
+Server runs on:
+http://localhost:3000.   
+* Environment Variables: 
+Create a .env file:
+MONGODB_URI=your_mongodb_uri
+JWT_TOKEN=your_secret
 
-🔐 Authentication Flow
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+Author
 --
-User login/signup.  
-JWT token generation.  
-Protected routes using Fastify middleware.  
-Token verification on secured endpoints.  
+Kajal Sanwal :)
 
-📂 File Handling
---
-This project demonstrates:   
-Stream-based file uploads.  
-Memory-efficient file processing.   
-Fastify multipart handling. 
-
-🧩 Fastify Plugins Covered
----
-Core Fastify plugins.  
-Custom plugin creation.  
-JWT plugin integration.   
-Middleware pattern in Fastify. 
-
-🎯 Learning Outcomes
---
-By building this project, I practiced:   
-⚡ Fastify internals and ecosystem.  
-🔐 Secure authentication flows.  
-🧩 Plugin-based backend architecture.   
-🌊 Node.js streams for file handling.   
-🏗️ Writing scalable backend code.   
-
-🚀 Future Improvements
---
- Add database integration.  
- Add role-based access control.   
- Add rate limiting.   
- Add API documentation .  
- Dockerize the backend.  
-
-👩‍💻 Author
---
-Kajal Sanwal :)   
-Building fast, scalable backend systems and leveling up every day 🚀
+Exploring backend systems, high-performance APIs, and scalable web architecture.
