@@ -469,15 +469,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── FORGOT/RESET ── */
-  .back-link {
-    display: inline-flex; align-items: center; gap: 6px;
-    color: var(--muted); font-size: 0.8rem;
-    cursor: pointer; margin-bottom: 20px;
-    background: none; border: none; font-family: var(--font-mono);
-  }
-  .back-link:hover { color: var(--text); }
-
   /* ── PROFILE PAGE ── */
   .profile-card {
     background: var(--surface);
@@ -536,70 +527,50 @@
   <div class="auth-wrap">
     <div class="auth-card" id="authCard">
 
-      <div id="formPanel">
-        <div class="auth-title">Welcome back.</div>
-        <div class="auth-sub">Sign in or create your account below.</div>
+      <div class="auth-title">Welcome back.</div>
+      <div class="auth-sub">Sign in or create your account below.</div>
 
-        <div class="tab-row">
-          <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-          <button class="tab-btn" onclick="switchTab('register')">Register</button>
-        </div>
-
-        <!-- LOGIN FORM -->
-        <div id="loginForm">
-          <div class="field">
-            <label>EMAIL</label>
-            <input type="email" id="loginEmail" placeholder="you@example.com">
-          </div>
-          <div class="field">
-            <label>PASSWORD</label>
-            <input type="password" id="loginPassword" placeholder="••••••••">
-          </div>
-          <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">
-            <span>Sign In</span>
-          </button>
-          <div style="text-align:center; margin-top:14px;">
-            <button onclick="showForgot()" style="background:none;border:none;color:var(--muted);font-size:0.78rem;cursor:pointer;font-family:var(--font-mono);">
-              Forgot password?
-            </button>
-          </div>
-        </div>
-
-        <!-- REGISTER FORM -->
-        <div id="registerForm" style="display:none">
-          <div class="field">
-            <label>FULL NAME</label>
-            <input type="text" id="regName" placeholder="Kajal Sanwal">
-          </div>
-          <div class="field">
-            <label>EMAIL</label>
-            <input type="email" id="regEmail" placeholder="you@example.com">
-          </div>
-          <div class="field">
-            <label>PASSWORD</label>
-            <input type="password" id="regPassword" placeholder="Min 8 characters">
-          </div>
-          <div class="field">
-            <label>COUNTRY <span style="color:var(--muted)">(optional)</span></label>
-            <input type="text" id="regCountry" placeholder="India">
-          </div>
-          <button class="btn btn-primary" id="registerBtn" onclick="doRegister()">
-            <span>Create Account</span>
-          </button>
-        </div>
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
       </div>
 
-      <!-- FORGOT PASSWORD -->
-      <div id="forgotPanel" style="display:none">
-        <button class="back-link" onclick="showForm()">← Back</button>
-        <div class="auth-title">Reset password.</div>
-        <div class="auth-sub">Enter your email and we'll send you a reset link.</div>
-        <div class="field" style="margin-top:24px">
+      <!-- LOGIN FORM -->
+      <div id="loginForm">
+        <div class="field">
           <label>EMAIL</label>
-          <input type="email" id="forgotEmail" placeholder="you@example.com">
+          <input type="email" id="loginEmail" placeholder="you@example.com">
         </div>
-        <button class="btn btn-primary" id="forgotBtn" onclick="doForgot()">Send Reset Link</button>
-        <div id="resetUrlBox" style="display:none; margin-top:20px; padding:14px; background:var(--surface2); border-radius:10px; font-size:0.75rem; word-break:break-all; color:var(--muted);"></div>
+        <div class="field">
+          <label>PASSWORD</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">
+          <span>Sign In</span>
+        </button>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerForm" style="display:none">
+        <div class="field">
+          <label>FULL NAME</label>
+          <input type="text" id="regName" placeholder="Kajal Sanwal">
+        </div>
+        <div class="field">
+          <label>EMAIL</label>
+          <input type="email" id="regEmail" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label>PASSWORD</label>
+          <input type="password" id="regPassword" placeholder="Min 8 characters">
+        </div>
+        <div class="field">
+          <label>COUNTRY <span style="color:var(--muted)">(optional)</span></label>
+          <input type="text" id="regCountry" placeholder="India">
+        </div>
+        <button class="btn btn-primary" id="registerBtn" onclick="doRegister()">
+          <span>Create Account</span>
+        </button>
       </div>
 
     </div>
@@ -854,15 +825,6 @@
     document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
   }
 
-  function showForgot() {
-    document.getElementById('formPanel').style.display = 'none';
-    document.getElementById('forgotPanel').style.display = 'block';
-  }
-  function showForm() {
-    document.getElementById('formPanel').style.display = 'block';
-    document.getElementById('forgotPanel').style.display = 'none';
-  }
-
   /* ── SECTION NAV ── */
   function showSection(name) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -939,25 +901,6 @@
       document.getElementById('loginEmail').value = email;
     } catch { toast('Network error.', 'error'); }
     finally { setLoading('registerBtn', false); const s = document.getElementById('registerBtn').querySelector('span'); if(s) s.textContent = 'Create Account'; }
-  }
-
-  async function doForgot() {
-    const email = document.getElementById('forgotEmail').value.trim();
-    if (!email) return toast('Enter your email.', 'error');
-    setLoading('forgotBtn', true);
-    try {
-      const res = await fetch(`${API}/api/auth/forgot-password`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-      if (!res.ok) return toast(data.message || 'Failed.', 'error');
-      const box = document.getElementById('resetUrlBox');
-      box.style.display = 'block';
-      box.textContent = '🔗 Reset URL: ' + (data.resetUrl || 'Check your email.');
-      toast('Reset link generated!', 'success');
-    } catch { toast('Network error.', 'error'); }
-    finally { setLoading('forgotBtn', false); }
   }
 
   function doLogout() {
@@ -1040,7 +983,7 @@
     `).join('');
   }
 
-  /* ── DOWNLOAD — blob-based, works cross-origin when deployed ── */
+  /* ── DOWNLOAD ── */
   async function downloadThumb(url, name, id) {
     const btn = document.getElementById('dl-' + id);
     if (btn) btn.classList.add('loading');
